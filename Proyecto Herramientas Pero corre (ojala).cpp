@@ -8,10 +8,10 @@ float eps0 = 1;
 float mu0 = 1;
 
 int N = 1;
-float dx = 0.1;
-float dt = 0.001;
+float dx = 0.2;  // Aumentado para reducir el n煤mero de pasos
+float dt = 0.01; // Aumentado para reducir el n煤mero de iteraciones
 int pasos = N / dx;
-int tiempo = 1;
+float tiempo = 0.1; // Reducido para simulaci贸n m谩s r谩pida
 float A = 1;
 float omega = 1;
 
@@ -28,7 +28,11 @@ double fuente(float omega, float t) {
 }
 
 int main() {
-	//Construcci髇, pasado
+    cout << "Iniciando simulaci贸n..." << endl;
+    cout << "Pasos del grid: " << pasos << "x" << pasos << "x" << pasos << endl;
+    cout << "N煤mero de iteraciones temporales: " << int(tiempo / dt) << endl;
+    
+	//Construcci贸n, pasado
     vector<vector<vector<double> > > Ex_old(pasos, vector<vector<double> >(pasos, vector<double>(pasos, 0.0)));
     vector<vector<vector<double> > > Ey_old(pasos, vector<vector<double> >(pasos, vector<double>(pasos, 0.0)));
     vector<vector<vector<double> > > Ez_old(pasos, vector<vector<double> >(pasos, vector<double>(pasos, 0.0)));
@@ -50,7 +54,8 @@ int main() {
         Ez_old[i][j_c][k_c] = fuente(omega, 0);
     }
 
-    // Construcci髇 del primer presente
+    cout << "Construyendo primer presente..." << endl;
+    // Construcci贸n del primer presente
     for (int i = 1; i < pasos - 1; i++) {
         for (int j = 1; j < pasos - 1; j++) {
             for (int k = 1; k < pasos - 1; k++) {
@@ -61,8 +66,15 @@ int main() {
         }
     }
 
-    // Evoluci髇 temporal
-    for (int t = 0; t < int(tiempo / dt); t++) {
+    cout << "Iniciando evoluci贸n temporal..." << endl;
+    // Evoluci贸n temporal
+    int total_steps = int(tiempo / dt);
+    for (int t = 0; t < total_steps; t++) {
+        // Mostrar progreso cada 10% de las iteraciones
+        if (t % (total_steps / 10 + 1) == 0) {
+            cout << "Progreso: " << (t * 100 / total_steps) << "%" << endl;
+        }
+        
         // Reaplicar fuente extendida
         for (int i = 1; i < pasos / 5; i++) {
             Ez_pres[i][j_c][k_c] = fuente(omega, t * dt);
@@ -72,13 +84,13 @@ int main() {
             for (int j = 1; j < pasos - 1; j++) {
                 for (int k = 1; k < pasos - 1; k++) {
                     Ex_fut[i][j][k] = 2 * Ex_pres[i][j][k] - Ex_old[i][j][k] + sigma(i, j, k) * (Ex_pres[i][j + 1][k] + Ex_pres[i][j - 1][k] - 4 * Ex_pres[i][j][k] + Ex_pres[i][j][k + 1] + Ex_pres[i][j][k - 1] - 0.25 * (Ey_pres[i + 1][j + 1][k] + Ey_pres[i - 1][j - 1][k] - Ey_pres[i + 1][j - 1][k] - Ey_pres[i - 1][j + 1][k] + Ez_pres[i + 1][j][k + 1] + Ez_pres[i - 1][j][k - 1] - Ez_pres[i + 1][j][k - 1] - Ez_pres[i - 1][j][k + 1]));
-                    Ey_fut[i][j][k] = 2 * Ey_pres[i][j][k] - Ey_old[i][j][k] + sigma(i, j, k) * (Ey_pres[i + 1][j][k] + Ey_pres[i - 1][j][k] - 4 * Ey_pres[i][j][k] + Ey_pres[i][j][k + 1] + Ey_pres[i][j][k - 1] - 0.25 * (Ex_pres[i + 1][j + 1][k] + Ex_pres[i - 1][j - 1][k] - Ex_pres[i + 1][j - 1][k] - Ey_pres[i - 1][j + 1][k] + Ez_pres[i][j + 1][k + 1] + Ez_pres[i][j - 1][k - 1] - Ez_pres[i][j + 1][k - 1] - Ez_pres[i][j - 1][k + 1]));
+                    Ey_fut[i][j][k] = 2 * Ey_pres[i][j][k] - Ey_old[i][j][k] + sigma(i, j, k) * (Ey_pres[i + 1][j][k] + Ey_pres[i - 1][j][k] - 4 * Ey_pres[i][j][k] + Ey_pres[i][j][k + 1] + Ey_pres[i][j][k - 1] - 0.25 * (Ex_pres[i + 1][j + 1][k] + Ex_pres[i - 1][j - 1][k] - Ex_pres[i + 1][j - 1][k] - Ex_pres[i - 1][j + 1][k] + Ez_pres[i][j + 1][k + 1] + Ez_pres[i][j - 1][k - 1] - Ez_pres[i][j + 1][k - 1] - Ez_pres[i][j - 1][k + 1]));
                     Ez_fut[i][j][k] = 2 * Ez_pres[i][j][k] - Ez_old[i][j][k] + sigma(i, j, k) * (Ez_pres[i + 1][j][k] + Ez_pres[i - 1][j][k] - 4 * Ez_pres[i][j][k] + Ez_pres[i][j + 1][k] + Ez_pres[i][j - 1][k] - 0.25 * (Ex_pres[i + 1][j][k + 1] + Ex_pres[i - 1][j][k - 1] - Ex_pres[i + 1][j][k - 1] - Ex_pres[i - 1][j][k + 1] + Ey_pres[i][j + 1][k + 1] + Ey_pres[i][j - 1][k - 1] - Ey_pres[i][j + 1][k - 1] - Ey_pres[i][j - 1][k + 1]));
                 }
             }
         }
 
-        // Condiciones de frontera absorbentes (ABC, es un m閠odo con el que b醩icamente conseguimos que la onda se vaya a "infinito" para que no hayan efectos de reflejo en los extremos)
+        // Condiciones de frontera absorbentes (ABC, es un m茅todo con el que b谩sicamente conseguimos que la onda se vaya a "infinito" para que no hayan efectos de reflejo en los extremos)
         for (int i = 0; i < pasos; i++) {
             for (int j = 0; j < pasos; j++) {
                 for (int k = 0; k < pasos; k++) {
@@ -101,7 +113,8 @@ int main() {
         Ez_pres = Ez_fut;
     }
 
-    cout << "Sisisisisisi" << endl;
+    cout << "隆Simulaci贸n completada exitosamente!" << endl;
+    cout << "Campo Ez en el centro: " << Ez_pres[pasos/2][pasos/2][pasos/2] << endl;
     return 0;
 }
 
