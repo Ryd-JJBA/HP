@@ -1,0 +1,107 @@
+#include<iostream>
+#include<fstream>
+#include<vector>
+#include<cmath>
+using namespace std;
+
+float eps0 = 1;
+float mu0 = 1;
+
+int N = 1;
+float dx = 0.1;
+float dt = 0.001;
+int pasos = N / dx;
+int tiempo = 1;
+float A = 1;
+float omega = 1;
+
+double eps(float x, float y, float z) {
+    return eps0 * log(1 + (x * y * z));
+}
+
+double sigma(float x, float y, float z) {
+    return ((dt / dx) * (dt / dx)) / (mu0 * eps(x, y, z));
+}
+
+double fuente(float omega, float t) {
+    return A * cos(omega * t);
+}
+
+int main() {
+	//Construcción, pasado
+    vector<vector<vector<double> > > Ex_old(pasos, vector<vector<double> >(pasos, vector<double>(pasos, 0.0)));
+    vector<vector<vector<double> > > Ey_old(pasos, vector<vector<double> >(pasos, vector<double>(pasos, 0.0)));
+    vector<vector<vector<double> > > Ez_old(pasos, vector<vector<double> >(pasos, vector<double>(pasos, 0.0)));
+
+    vector<vector<vector<double> > > Ex_pres = Ex_old;
+    vector<vector<vector<double> > > Ey_pres = Ey_old;
+    vector<vector<vector<double> > > Ez_pres = Ez_old;
+
+    vector<vector<vector<double> > > Ex_fut = Ex_old;
+    vector<vector<vector<double> > > Ey_fut = Ey_old;
+    vector<vector<vector<double> > > Ez_fut = Ez_old;
+    
+    vector<vector<vector<double> > > sigma_grid(pasos, vector<vector<double> >(pasos, vector<double>(pasos, 0.0)));
+    
+    // Fuente extendida en x, centrada en y y z
+    int j_c = pasos / 2;
+    int k_c = pasos / 2;
+    for (int i = 1; i < pasos / 5; i++) {
+        Ez_old[i][j_c][k_c] = fuente(omega, 0);
+    }
+
+    // Construcción del primer presente
+    for (int i = 1; i < pasos - 1; i++) {
+        for (int j = 1; j < pasos - 1; j++) {
+            for (int k = 1; k < pasos - 1; k++) {
+                Ex_pres[i][j][k] = Ex_old[i][j][k] + 0.5 * sigma(i, j, k) * (Ex_old[i][j + 1][k] + Ex_old[i][j - 1][k] - 2 * Ex_old[i][j][k] + Ex_old[i][j][k + 1] + Ex_old[i][j][k - 1] - 2 * Ex_old[i][j][k] - 0.25 * (Ey_old[i + 1][j + 1][k] + Ey_old[i - 1][j - 1][k] - Ey_old[i + 1][j - 1][k] + Ey_old[i - 1][j + 1][k] + Ez_old[i + 1][j][k + 1] + Ez_old[i - 1][j][k - 1] - Ez_old[i + 1][j][k - 1] - Ez_old[i - 1][j][k + 1]));
+                Ey_pres[i][j][k] = Ey_old[i][j][k] + 0.5 * sigma(i, j, k) * (Ey_old[i + 1][j][k] + Ey_old[i - 1][j][k] - 2 * Ey_old[i][j][k] + Ey_old[i][j][k + 1] + Ey_old[i][j][k - 1] - 2 * Ey_old[i][j][k] - 0.25 * (Ex_old[i + 1][j + 1][k] + Ex_old[i - 1][j - 1][k] - Ex_old[i + 1][j - 1][k] + Ex_old[i - 1][j + 1][k] + Ez_old[i][j + 1][k + 1] + Ez_old[i][j - 1][k - 1] - Ez_old[i][j + 1][k - 1] - Ez_old[i][j - 1][k + 1]));
+                Ez_pres[i][j][k] = Ez_old[i][j][k] + 0.5 * sigma(i, j, k) * (Ez_old[i + 1][j][k] + Ez_old[i - 1][j][k] - 2 * Ez_old[i][j][k] + Ez_old[i][j + 1][k] + Ez_old[i][j - 1][k] - 2 * Ez_old[i][j][k] - 0.25 * (Ex_old[i + 1][j][k + 1] + Ex_old[i - 1][j][k - 1] - Ex_old[i + 1][j][k - 1] + Ex_old[i - 1][j][k + 1] + Ey_old[i][j + 1][k + 1] + Ey_old[i][j - 1][k - 1] - Ey_old[i][j + 1][k - 1] - Ey_old[i][j - 1][k + 1]));
+            }
+        }
+    }
+
+    // Evolución temporal
+    for (int t = 0; t < int(tiempo / dt); t++) {
+        // Reaplicar fuente extendida
+        for (int i = 1; i < pasos / 5; i++) {
+            Ez_pres[i][j_c][k_c] = fuente(omega, t * dt);
+        }
+
+        for (int i = 1; i < pasos - 1; i++) {
+            for (int j = 1; j < pasos - 1; j++) {
+                for (int k = 1; k < pasos - 1; k++) {
+                    Ex_fut[i][j][k] = 2 * Ex_pres[i][j][k] - Ex_old[i][j][k] + sigma(i, j, k) * (Ex_pres[i][j + 1][k] + Ex_pres[i][j - 1][k] - 4 * Ex_pres[i][j][k] + Ex_pres[i][j][k + 1] + Ex_pres[i][j][k - 1] - 0.25 * (Ey_pres[i + 1][j + 1][k] + Ey_pres[i - 1][j - 1][k] - Ey_pres[i + 1][j - 1][k] - Ey_pres[i - 1][j + 1][k] + Ez_pres[i + 1][j][k + 1] + Ez_pres[i - 1][j][k - 1] - Ez_pres[i + 1][j][k - 1] - Ez_pres[i - 1][j][k + 1]));
+                    Ey_fut[i][j][k] = 2 * Ey_pres[i][j][k] - Ey_old[i][j][k] + sigma(i, j, k) * (Ey_pres[i + 1][j][k] + Ey_pres[i - 1][j][k] - 4 * Ey_pres[i][j][k] + Ey_pres[i][j][k + 1] + Ey_pres[i][j][k - 1] - 0.25 * (Ex_pres[i + 1][j + 1][k] + Ex_pres[i - 1][j - 1][k] - Ex_pres[i + 1][j - 1][k] - Ey_pres[i - 1][j + 1][k] + Ez_pres[i][j + 1][k + 1] + Ez_pres[i][j - 1][k - 1] - Ez_pres[i][j + 1][k - 1] - Ez_pres[i][j - 1][k + 1]));
+                    Ez_fut[i][j][k] = 2 * Ez_pres[i][j][k] - Ez_old[i][j][k] + sigma(i, j, k) * (Ez_pres[i + 1][j][k] + Ez_pres[i - 1][j][k] - 4 * Ez_pres[i][j][k] + Ez_pres[i][j + 1][k] + Ez_pres[i][j - 1][k] - 0.25 * (Ex_pres[i + 1][j][k + 1] + Ex_pres[i - 1][j][k - 1] - Ex_pres[i + 1][j][k - 1] - Ex_pres[i - 1][j][k + 1] + Ey_pres[i][j + 1][k + 1] + Ey_pres[i][j - 1][k - 1] - Ey_pres[i][j + 1][k - 1] - Ey_pres[i][j - 1][k + 1]));
+                }
+            }
+        }
+
+        // Condiciones de frontera absorbentes (ABC, es un método con el que básicamente conseguimos que la onda se vaya a "infinito" para que no hayan efectos de reflejo en los extremos)
+        for (int i = 0; i < pasos; i++) {
+            for (int j = 0; j < pasos; j++) {
+                for (int k = 0; k < pasos; k++) {
+                    if (i == 0 || i == pasos - 1 || j == 0 || j == pasos - 1 || k == 0 || k == pasos - 1) {
+                        Ex_fut[i][j][k] = 0.0;
+                        Ey_fut[i][j][k] = 0.0;
+                        Ez_fut[i][j][k] = 0.0;
+                    }
+                }
+            }
+        }
+
+        // Avanzar en el tiempo
+        Ex_old = Ex_pres;
+        Ey_old = Ey_pres;
+        Ez_old = Ez_pres;
+
+        Ex_pres = Ex_fut;
+        Ey_pres = Ey_fut;
+        Ez_pres = Ez_fut;
+    }
+
+    cout << "Sisisisisisi" << endl;
+    return 0;
+}
+
