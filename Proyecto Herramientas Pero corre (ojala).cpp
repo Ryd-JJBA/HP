@@ -70,12 +70,11 @@ int main() {
     // Evolución temporal
     int total_steps = int(tiempo / dt);
     for (int t = 0; t < total_steps; t++) {
-        // Mostrar progreso cada 10% de las iteraciones
+	    
         if (t % (total_steps / 10 + 1) == 0) {
             cout << "Progreso: " << (t * 100 / total_steps) << "%" << endl;
         }
         
-        // Reaplicar fuente extendida
         for (int i = 1; i < pasos / 5; i++) {
             Ez_pres[i][j_c][k_c] = fuente(omega, t * dt);
         }
@@ -91,10 +90,10 @@ int main() {
         }
 
         // Condiciones de frontera absorbentes (ABC, es un método con el que básicamente conseguimos que la onda se vaya a "infinito" para que no hayan efectos de reflejo en los extremos)
-        for (int i = 0; i < pasos; i++) {
-            for (int j = 0; j < pasos; j++) {
-                for (int k = 0; k < pasos; k++) {
-                    if (i == 0 || i == pasos - 1 || j == 0 || j == pasos - 1 || k == 0 || k == pasos - 1) {
+        for (int i = 0; i < pasos; i++){
+            for (int j = 0; j < pasos; j++){
+                for (int k = 0; k < pasos; k++){
+                    if (i == 0 || i == pasos - 1 || j == 0 || j == pasos - 1 || k == 0 || k == pasos - 1){
                         Ex_fut[i][j][k] = 0.0;
                         Ey_fut[i][j][k] = 0.0;
                         Ez_fut[i][j][k] = 0.0;
@@ -111,10 +110,21 @@ int main() {
         Ex_pres = Ex_fut;
         Ey_pres = Ey_fut;
         Ez_pres = Ez_fut;
+//Bueno, no me quiere compilar esta porquería pero esta parte serviría para guardar datos en un plano constante
+	int k_plano = pasos/2;  // plano z = constante
+	ofstream z_cte("frame_t_" + to_string(t) + ".dat");
+	for (int i=0; i<pasos; i++){
+		for (int j=0; j<pasos; j++){
+			z_cte << i*dx << " " << j*dx << " " << Ez_pres[i][j][k_plano] << "\n";
+		}
+    z_cte << "\n";
+}
+z_cte.close();
+	    
     }
 
     cout << "¡Simulación completada exitosamente!" << endl;
     cout << "Campo Ez en el centro: " << Ez_pres[pasos/2][pasos/2][pasos/2] << endl;
+	
     return 0;
 }
-
